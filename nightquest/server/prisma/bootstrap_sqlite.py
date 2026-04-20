@@ -1,7 +1,28 @@
+import os
 import sqlite3
 from pathlib import Path
 
-db_path = Path(__file__).resolve().parent.parent / "dev.db"
+
+def resolve_db_path():
+    raw_url = os.environ.get("DATABASE_URL", "file:./dev.db")
+    server_root = Path(__file__).resolve().parent.parent
+
+    if not raw_url.startswith("file:"):
+        raise ValueError("bootstrap_sqlite.py supporta solo DATABASE_URL SQLite con prefisso file:")
+
+    target = raw_url[5:]
+    if not target:
+        return server_root / "dev.db"
+
+    path = Path(target)
+    if not path.is_absolute():
+        path = (server_root / path).resolve()
+
+    return path
+
+
+db_path = resolve_db_path()
+db_path.parent.mkdir(parents=True, exist_ok=True)
 conn = sqlite3.connect(db_path)
 cursor = conn.cursor()
 
