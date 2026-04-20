@@ -37,7 +37,7 @@ RUN mkdir -p /app/server/data
 
 EXPOSE 3001
 
-CMD ["node", "dist/index.js"]
+CMD ["node", "dist/src/index.js"]
 
 FROM caddy:2-alpine AS caddy
 
