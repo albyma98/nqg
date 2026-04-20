@@ -1,6 +1,7 @@
 FROM node:20-bookworm-slim AS build
 
 WORKDIR /app
+ARG API_BASE_URL
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends python3 make g++ \
@@ -16,6 +17,9 @@ RUN npm ci
 
 COPY . .
 
+RUN test -n "$API_BASE_URL"
+RUN printf 'VITE_API_BASE_URL=%s\n' "$API_BASE_URL" > apps/web/.env.production
+RUN printf 'VITE_API_BASE_URL=%s\n' "$API_BASE_URL" > apps/admin/.env.production
 RUN npm run db:generate && npm run build
 
 FROM node:20-bookworm-slim AS api

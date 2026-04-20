@@ -3,6 +3,8 @@ services:
     build:
       context: .
       target: api
+      args:
+        API_BASE_URL: https://${API_DOMAIN}
     restart: unless-stopped
     environment:
       NODE_ENV: production
@@ -26,6 +28,8 @@ services:
     build:
       context: .
       target: api
+      args:
+        API_BASE_URL: https://${API_DOMAIN}
     profiles:
       - init
     environment:
@@ -46,6 +50,8 @@ services:
     build:
       context: .
       target: caddy
+      args:
+        API_BASE_URL: https://${API_DOMAIN}
     restart: unless-stopped
     depends_on:
       - api
