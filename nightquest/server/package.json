@@ -7,7 +7,7 @@
     "dev": "tsx watch src/index.ts",
     "build": "tsc -p tsconfig.json",
     "prisma:generate": "prisma generate",
-    "prisma:migrate": "python prisma/bootstrap_sqlite.py",
+    "prisma:migrate": "python3 prisma/bootstrap_sqlite.py",
     "prisma:seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
