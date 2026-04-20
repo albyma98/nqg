@@ -1,0 +1,21 @@
+{
+  "name": "nightquest",
+  "private": true,
+  "version": "1.0.0",
+  "workspaces": [
+    "apps/*",
+    "packages/*",
+    "server"
+  ],
+  "scripts": {
+    "dev": "concurrently -k -n server,web,admin -c cyan,magenta,yellow \"npm run dev -w server\" \"npm run dev -w @nightquest/web\" \"npm run dev -w @nightquest/admin\"",
+    "build": "npm run build -ws --if-present",
+    "db:generate": "npm run prisma:generate -w server",
+    "db:migrate": "npm run prisma:migrate -w server",
+    "db:seed": "npm run prisma:seed -w server"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2",
+    "typescript": "^5.8.3"
+  }
+}

@@ -1,0 +1,222 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model City {
+  id          String    @id @default(cuid())
+  slug        String    @unique
+  name        String
+  active      Boolean   @default(false)
+  openingLine String
+  createdAt   DateTime  @default(now())
+  places      Place[]
+  missions    Mission[]
+  sessions    Session[]
+  generatedProposals GeneratedMissionProposal[]
+}
+
+model Place {
+  id                     String    @id @default(cuid())
+  cityId                 String
+  name                   String
+  zone                   String
+  latitude               Float
+  longitude              Float
+  gpsRadius              Int       @default(30)
+  gpsUncertaintyRadius   Int       @default(50)
+  fallbackAllowed        Boolean   @default(true)
+  approachHintRadius     Int       @default(150)
+  atmosphere             String
+  hint                   String
+  active                 Boolean   @default(true)
+  city                   City      @relation(fields: [cityId], references: [id], onDelete: Cascade)
+  missions               Mission[]
+  facts                  PlaceFacts?
+}
+
+model Tone {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  name        String
+  guidelines  String
+  bannedWords String
+  examples    String
+  missions    Mission[]
+}
+
+model Mission {
+  id           String       @id @default(cuid())
+  cityId        String
+  placeId       String
+  title         String
+  toneSlug      String
+  difficulty    Int
+  objective     String
+  openingBrief  String
+  successNote   String
+  order         Int
+  active        Boolean      @default(true)
+  tags          String
+  city          City         @relation(fields: [cityId], references: [id], onDelete: Cascade)
+  place         Place        @relation(fields: [placeId], references: [id], onDelete: Cascade)
+  tone          Tone         @relation(fields: [toneSlug], references: [slug])
+  checkpoints   Checkpoint[]
+  transit       Transit?
+  approvedFromProposal GeneratedMissionProposal?
+}
+
+model Checkpoint {
+  id             String         @id @default(cuid())
+  missionId       String
+  order           Int
+  type            CheckpointType
+  prompt          String
+  validationRule  String
+  hints           String
+  acceptAny       Boolean        @default(false)
+  mission         Mission        @relation(fields: [missionId], references: [id], onDelete: Cascade)
+}
+
+model Transit {
+  id               String        @id @default(cuid())
+  missionId         String        @unique
+  estimatedMinutes  Int
+  recommendedPath   String?
+  mission           Mission       @relation(fields: [missionId], references: [id], onDelete: Cascade)
+  ambientLines      AmbientLine[]
+}
+
+model AmbientLine {
+  id                      String    @id @default(cuid())
+  transitId               String
+  trigger                 AmbientTrigger
+  text                    String
+  tone                    String?
+  order                   Int
+  minSecondsFromPrevious  Int       @default(60)
+  transit                 Transit   @relation(fields: [transitId], references: [id], onDelete: Cascade)
+}
+
+model Session {
+  id                  String         @id @default(cuid())
+  cityId              String
+  alias               String
+  startedAt           DateTime       @default(now())
+  finishedAt          DateTime?
+  currentMissionId    String?
+  currentCheckpointId String?
+  lastGeoUpdate       DateTime?
+  lastKnownLatitude   Float?
+  lastKnownLongitude  Float?
+  lastKnownAccuracy   Float?
+  geoState            String         @default("unknown")
+  elapsedSeconds      Int            @default(0)
+  pauseEvents         String         @default("[]")
+  transitPath         String         @default("[]")
+  lastAmbientLineAt   DateTime?
+  lastAmbientTrigger  String?
+  batteryLevelAtStart Float?
+  batteryLevelCurrent Float?
+  compassPermissionGranted Boolean   @default(false)
+  geoPermissionGranted Boolean       @default(false)
+  narrativeState      String
+  completedMissionIds String
+  city                City           @relation(fields: [cityId], references: [id], onDelete: Cascade)
+  events              SessionEvent[]
+}
+
+model SessionEvent {
+  id        String   @id @default(cuid())
+  sessionId  String
+  timestamp DateTime @default(now())
+  type      String
+  payload   String
+  session   Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+}
+
+model AdminUser {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  passwordHash String
+  role         AdminRole @default(editor)
+  active       Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+}
+
+model GenerationRule {
+  id                  String   @id @default(cuid())
+  targetType          String
+  vincoli             String
+  examplesPositive    String
+  examplesNegative    String
+  validationChecklist String
+}
+
+model PlaceFacts {
+  id              String   @id @default(cuid())
+  placeId         String   @unique
+  place           Place    @relation(fields: [placeId], references: [id], onDelete: Cascade)
+  visualElements  Json
+  sensoryElements Json
+  historicalFacts Json
+  notableDetails  Json
+  confirmedBy     String
+  confirmedAt     DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  adminNotes      String?
+}
+
+model GeneratedMissionProposal {
+  id                  String   @id @default(cuid())
+  batchId             String
+  cityId              String
+  city                City     @relation(fields: [cityId], references: [id], onDelete: Cascade)
+  status              String
+  reviewedBy          String?
+  reviewedAt          DateTime?
+  proposedMission     Json
+  proposedCheckpoints Json
+  proposedTransit     Json?
+  generationConfig    Json
+  generationModel     String
+  generationCost      Float?
+  generatedAt         DateTime @default(now())
+  approvedAsMissionId String?  @unique
+  approvedAsMission   Mission? @relation(fields: [approvedAsMissionId], references: [id])
+  modifications       Json?
+  rejectionReason     String?
+}
+
+model SystemPromptVersion {
+  id        String   @id @default(cuid())
+  content   String
+  createdAt DateTime @default(now())
+}
+
+enum CheckpointType {
+  keyword
+  multiple_choice
+  observation_confirm
+  count
+  sequence
+  walk_blind
+}
+
+enum AmbientTrigger {
+  start
+  halfway
+  approaching
+  arrival
+  idle
+  deviation
+}
+
+enum AdminRole {
+  admin
+  editor
+}

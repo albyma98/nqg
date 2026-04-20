@@ -1,0 +1,16 @@
+node_modules
+**/node_modules
+dist
+**/dist
+.git
+.gitignore
+.vite
+**/.vite
+*.log
+*.local
+.env
+**/.env
+certs
+server/dev.db
+server/prisma/dev.db
+dev.db

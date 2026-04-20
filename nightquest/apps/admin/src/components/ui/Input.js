@@ -1,0 +1,10 @@
+import { jsx as _jsx } from "react/jsx-runtime";
+import { forwardRef } from 'react';
+import { cn } from '../../lib/cn';
+const baseInput = 'w-full rounded-sm border border-admin-border bg-white px-3 py-3 font-sans text-adminBody text-admin-text outline-none transition focus:border-admin-text';
+export const Input = forwardRef((props, ref) => (_jsx("input", { ...props, ref: ref, className: cn(baseInput, props.className) })));
+Input.displayName = 'Input';
+export const Textarea = forwardRef((props, ref) => (_jsx("textarea", { ...props, ref: ref, className: cn(baseInput, props.className) })));
+Textarea.displayName = 'Textarea';
+export const Select = forwardRef((props, ref) => (_jsx("select", { ...props, ref: ref, className: cn(baseInput, props.className) })));
+Select.displayName = 'Select';

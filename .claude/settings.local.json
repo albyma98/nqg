@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(xargs cat *)",
+      "Bash(npx tsc *)",
+      "Bash(npx vite *)",
+      "Bash(npm run *)",
+      "Bash(node -e ' *)",
+      "Bash(curl -s http://localhost:3001/health)",
+      "Bash(npx dotenv *)",
+      "Bash(npx prisma *)",
+      "Bash(DATABASE_URL=\"file:./dev.db\" npx prisma migrate status)",
+      "Bash(curl -s -X POST http://localhost:3001/api/admin/login -H \"Content-Type: application/json\" -d \"{\\\\\"email\\\\\":\\\\\"admin@nightquest.it\\\\\",\\\\\"password\\\\\":\\\\\"admin\\\\\"}\")",
+      "Bash(curl -s -X POST http://localhost:3001/api/admin/login -H \"Content-Type: application/json\" -H \"Origin: http://localhost:5174\" -d \"{\\\\\"email\\\\\":\\\\\"admin@nightquest.it\\\\\",\\\\\"password\\\\\":\\\\\"admin\\\\\"}\" -v)",
+      "Bash(curl -s -X POST http://192.168.1.71:3001/api/admin/login -H \"Content-Type: application/json\" -d \"{\\\\\"email\\\\\":\\\\\"admin@nightquest.it\\\\\",\\\\\"password\\\\\":\\\\\"admin\\\\\"}\")",
+      "Bash(curl -s -X OPTIONS http://192.168.1.71:3001/api/admin/login -H \"Origin: http://192.168.1.71:5174\" -H \"Access-Control-Request-Method: POST\" -H \"Access-Control-Request-Headers: content-type\" -v)",
+      "Bash(curl -v -X OPTIONS \"http://192.168.1.71:3001/api/admin/login\" -H \"Origin: http://192.168.1.71:5174\" -H \"Access-Control-Request-Method: POST\" -H \"Access-Control-Request-Headers: content-type\")",
+      "Bash(curl -s http://192.168.1.71:3001/health)"
+    ]
+  }
+}

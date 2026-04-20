@@ -1,0 +1,174 @@
+@import './styles/tokens.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html {
+  min-height: -webkit-fill-available;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100dvh;
+  background: radial-gradient(ellipse at top, #12121a 0%, #0a0a0f 50%, #050507 100%);
+  color: var(--ink-primary);
+  font-family: 'Inter', sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#root {
+  min-height: 100dvh;
+}
+
+button,
+[role='button'],
+a {
+  touch-action: manipulation;
+}
+
+body::before {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  content: '';
+  background:
+    radial-gradient(circle at 20% 10%, rgba(138, 106, 32, 0.06), transparent 25%),
+    radial-gradient(circle at 80% 20%, rgba(58, 74, 90, 0.08), transparent 30%),
+    radial-gradient(circle at center, rgba(255, 255, 255, 0.02) 0%, transparent 45%);
+  transform-origin: center;
+}
+
+.safe-shell {
+  padding-top: max(24px, env(safe-area-inset-top));
+  padding-bottom: max(24px, env(safe-area-inset-bottom));
+}
+
+.transit-map-container .leaflet-control-attribution,
+.transit-map-container .leaflet-control-container {
+  display: none;
+}
+
+.transit-map-container .leaflet-tile-pane {
+  filter: brightness(0.85) contrast(1.1) saturate(0) sepia(0.1);
+}
+
+.transit-map-vignette {
+  box-shadow: inset 0 0 60px rgba(0, 0, 0, 0.6);
+}
+
+.transit-map-signal-overlay {
+  background: rgba(0, 0, 0, 0.3);
+  transition: opacity 800ms cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+
+.transit-map-attribution {
+  font-family: 'Inter', sans-serif;
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #4a4a5a;
+}
+
+.user-location-marker {
+  position: relative;
+  width: 32px;
+  height: 32px;
+}
+
+.user-location-dot {
+  position: absolute;
+  inset: 11px;
+  border-radius: 9999px;
+  background: #f5f5f0;
+  border: 1px solid #1a1a24;
+  box-shadow: 0 0 0 1px rgba(18, 18, 26, 0.55);
+}
+
+.user-location-pulse {
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  background: rgba(245, 245, 240, 0.15);
+  animation: userPulse 2s linear infinite;
+}
+
+.user-location-marker.signal-lost {
+  opacity: 0.4;
+}
+
+.destination-marker {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 22px;
+  line-height: 1;
+  color: #8a6a20;
+  text-shadow: 0 0 8px rgba(138, 106, 32, 0.4);
+  animation: destinationGlow 3s ease-in-out infinite;
+}
+
+.transit-route-path {
+  animation: dashFlow 20s linear infinite;
+}
+
+.transit-destination-tooltip {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  color: #b8b8b0;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 13px;
+  font-style: italic;
+}
+
+.transit-destination-tooltip::before {
+  display: none;
+}
+
+@keyframes dashFlow {
+  to {
+    stroke-dashoffset: -1000;
+  }
+}
+
+@keyframes userPulse {
+  0% {
+    opacity: 0.6;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0.1;
+    transform: scale(1.8);
+  }
+}
+
+@keyframes destinationGlow {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 6px rgba(138, 106, 32, 0.25));
+  }
+  50% {
+    filter: drop-shadow(0 0 12px rgba(138, 106, 32, 0.4));
+  }
+}
+
+.reduced-motion .user-location-pulse,
+.reduced-motion.destination-marker,
+.transit-route-path.reduced-motion {
+  animation: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .user-location-pulse,
+  .destination-marker,
+  .transit-route-path {
+    animation: none !important;
+  }
+}
