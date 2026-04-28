@@ -9,6 +9,11 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [react()],
+    resolve: {
+      alias: {
+        '@nightquest/shared': path.resolve(process.cwd(), '../../packages/shared/src')
+      }
+    },
     server: {
       host: '0.0.0.0',
       port: 5173,

@@ -1,5 +1,6 @@
 import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import { ChevronRight, RotateCcw, Sparkles } from 'lucide-react';
+import { getTransitState, haversineDistance, humanizeDistance } from '@nightquest/shared';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { api } from './api';
 import { MissionCard } from './components/experience/MissionCard';
@@ -83,14 +84,38 @@ export default function App() {
             }
         },
         onSample: (sample) => {
+            const targetPlace = session?.currentMission?.place;
+            if (targetPlace) {
+                const distanceToTarget = Math.round(haversineDistance(sample.latitude, sample.longitude, targetPlace.latitude, targetPlace.longitude));
+                const localGeoState = getTransitState({
+                    geoState: session.geoState,
+                    lastKnownLatitude: sample.latitude,
+                    lastKnownLongitude: sample.longitude
+                }, targetPlace);
+                setHumanDistance(humanizeDistance(distanceToTarget));
+                setUncertainZone(localGeoState === 'uncertain_zone');
+            }
             setSession((current) => current
                 ? {
                     ...current,
                     lastKnownLatitude: sample.latitude,
                     lastKnownLongitude: sample.longitude,
-                    lastKnownAccuracy: sample.accuracy
+                    lastKnownAccuracy: sample.accuracy,
+                    geoState: targetPlace
+                        ? getTransitState({
+                            geoState: current.geoState,
+                            lastKnownLatitude: sample.latitude,
+                            lastKnownLongitude: sample.longitude
+                        }, targetPlace)
+                        : current.geoState
                 }
                 : current);
+        },
+        shouldSendImmediately: (sample) => {
+            const targetPlace = session?.currentMission?.place;
+            if (!targetPlace)
+                return false;
+            return haversineDistance(sample.latitude, sample.longitude, targetPlace.latitude, targetPlace.longitude) <= targetPlace.gpsRadius;
         },
         onError: (message) => {
             setNetworkError(message);

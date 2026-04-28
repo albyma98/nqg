@@ -17,8 +17,13 @@ export function useGeoTracker(params) {
     const lastSentAt = useRef(0);
     const lastDistance = useRef(null);
     const watchId = useRef(null);
+    const paramsRef = useRef(params);
     useEffect(() => {
-        if (!params.enabled || !params.session) {
+        paramsRef.current = params;
+    }, [params]);
+    useEffect(() => {
+        const sessionId = params.session?.id;
+        if (!params.enabled || !sessionId) {
             if (watchId.current != null) {
                 navigator.geolocation.clearWatch(watchId.current);
                 watchId.current = null;
@@ -26,23 +31,28 @@ export function useGeoTracker(params) {
             return;
         }
         if (!('geolocation' in navigator)) {
-            params.onError?.('La geolocalizzazione non è disponibile su questo dispositivo.');
+            paramsRef.current.onError?.('La geolocalizzazione non e disponibile su questo dispositivo.');
             return;
         }
+        lastSentAt.current = 0;
+        lastDistance.current = null;
         watchId.current = navigator.geolocation.watchPosition(async (position) => {
-            params.onSample?.({
+            const latestParams = paramsRef.current;
+            const sample = {
                 latitude: position.coords.latitude,
                 longitude: position.coords.longitude,
                 accuracy: position.coords.accuracy,
                 timestamp: position.timestamp
-            });
-            const interval = getInterval(lastDistance.current, Boolean(params.batterySaver));
-            if (Date.now() - lastSentAt.current < interval) {
+            };
+            latestParams.onSample?.(sample);
+            const forceSend = latestParams.shouldSendImmediately?.(sample) ?? false;
+            const interval = getInterval(lastDistance.current, Boolean(latestParams.batterySaver));
+            if (!forceSend && Date.now() - lastSentAt.current < interval) {
                 return;
             }
             lastSentAt.current = Date.now();
             try {
-                const response = await api.geoUpdate(params.session.id, {
+                const response = await api.geoUpdate(sessionId, {
                     latitude: position.coords.latitude,
                     longitude: position.coords.longitude,
                     accuracy: position.coords.accuracy,
@@ -51,13 +61,13 @@ export function useGeoTracker(params) {
                     timestamp: position.timestamp
                 });
                 lastDistance.current = response.distanceToTarget;
-                params.onGeoResponse(response);
+                paramsRef.current.onGeoResponse(response);
             }
             catch {
-                params.onError?.('La notte si interrompe. Torna quando puoi.');
+                paramsRef.current.onError?.('La notte si interrompe. Torna quando puoi.');
             }
         }, () => {
-            params.onError?.('Ti sto perdendo. Cerca il cielo.');
+            paramsRef.current.onError?.('Ti sto perdendo. Cerca il cielo.');
         }, {
             enableHighAccuracy: true,
             maximumAge: 2000,
@@ -69,7 +79,7 @@ export function useGeoTracker(params) {
                 watchId.current = null;
             }
         };
-    }, [params]);
+    }, [params.enabled, params.session?.id, params.session?.currentMissionId]);
 }
 export function useCompass() {
     const [alpha, setAlpha] = useState(null);
