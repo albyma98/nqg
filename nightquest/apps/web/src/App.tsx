@@ -7,6 +7,10 @@ import { Button } from './components/ui/Button';
 import { Input } from './components/ui/Input';
 import { TypingText } from './components/ui/TypingText';
 import { useGeoTracker } from './lib/geoTracker';
+import { useWakeLock } from './lib/wakeLock';
+import { shouldEnableBatterySaver, useBatteryStatus } from './lib/battery';
+import { cancelSpeech, isVoiceEnabled, speak } from './lib/speech';
+import { clearOutbox } from './lib/outbox';
 import { PermissionFlow } from './screens/PermissionFlow';
 import { LostMap, TransitScreen } from './screens/TransitScreen';
 import { WalkBlindScreen } from './screens/WalkBlindScreen';
@@ -65,20 +69,61 @@ export default function App() {
   const [humanElapsed, setHumanElapsed] = useState('siamo qui da poco');
   const [uncertainZone, setUncertainZone] = useState(false);
   const [batterySaver, setBatterySaver] = useState(false);
+  const [voiceEnabled, setVoiceEnabledState] = useState(false);
   const [lostMapVisible, setLostMapVisible] = useState(false);
   const [lostModeUsedForMission, setLostModeUsedForMission] = useState<Record<string, boolean>>({});
   const typedText = useTypingText(ombraLine);
   const transitionedMissionId = useRef<string | null>(null);
+  const battery = useBatteryStatus();
+
+  useWakeLock(phase === 'transit' || phase === 'mission');
+
+  useEffect(() => {
+    setVoiceEnabledState(isVoiceEnabled());
+  }, []);
+
+  useEffect(() => {
+    if (!voiceEnabled) return;
+    if (phase !== 'transit' && phase !== 'mission' && phase !== 'finale' && phase !== 'evocation') return;
+    if (!ombraLine) return;
+    speak(ombraLine);
+    return () => cancelSpeech();
+  }, [ombraLine, voiceEnabled, phase]);
+
+  useEffect(() => {
+    const auto = shouldEnableBatterySaver(battery);
+    if (auto != null) setBatterySaver(auto);
+  }, [battery.level, battery.charging, battery.dischargingTimeSeconds, battery.supported]);
 
   function selectCity(cityId: string) {
     setSelectedCityId(cityId);
     window.setTimeout(() => setPhase('alias'), 0);
   }
 
+  const parsedRecommendedPath = useMemo<Array<[number, number]>>(() => {
+    const raw = session?.currentMission?.transit?.recommendedPath;
+    if (!raw) return [];
+    try {
+      const parsed = JSON.parse(raw) as Array<
+        [number, number] | { lat?: number; lng?: number; latitude?: number; longitude?: number }
+      >;
+      return parsed
+        .map((item) =>
+          Array.isArray(item)
+            ? ([Number(item[0]), Number(item[1])] as [number, number])
+            : ([Number(item.lat ?? item.latitude), Number(item.lng ?? item.longitude)] as [number, number])
+        )
+        .filter((item) => Number.isFinite(item[0]) && Number.isFinite(item[1]));
+    } catch {
+      return [];
+    }
+  }, [session?.currentMission?.transit?.recommendedPath]);
+
   useGeoTracker({
     session,
     enabled: phase === 'transit' && Boolean(session?.geoPermissionGranted),
     batterySaver,
+    recommendedPath: parsedRecommendedPath,
     onGeoResponse: (response) => {
       setHumanDistance(response.humanDistance);
       setHumanElapsed(response.timerSnapshot.humanElapsed);
@@ -134,7 +179,8 @@ export default function App() {
     shouldSendImmediately: (sample) => {
       const targetPlace = session?.currentMission?.place;
       if (!targetPlace) return false;
-      return haversineDistance(sample.latitude, sample.longitude, targetPlace.latitude, targetPlace.longitude) <= targetPlace.gpsRadius;
+      const accuracyMargin = Math.min(Math.max(sample.accuracy ?? 0, 0), 30);
+      return haversineDistance(sample.latitude, sample.longitude, targetPlace.latitude, targetPlace.longitude) <= targetPlace.gpsRadius + accuracyMargin;
     },
     onError: (message) => {
       setNetworkError(message);
@@ -271,21 +317,29 @@ export default function App() {
   }
 
   function resetSession() {
+    cancelSpeech();
+    if (session?.id) void clearOutbox(session.id).catch(() => undefined);
     localStorage.removeItem(STORAGE_KEY);
     window.location.reload();
   }
 
   async function handlePermissionComplete(result: {
     geoGranted: boolean;
+    compassGranted: boolean;
+    voiceEnabled: boolean;
     batteryLow: boolean;
     initialPosition?: { latitude: number; longitude: number; accuracy: number };
   }) {
     if (!session) return;
     setBatterySaver(result.batteryLow);
+    setVoiceEnabledState(result.voiceEnabled);
     await api.geoPermission(session.id, result.geoGranted);
+    if (result.compassGranted) {
+      void api.compassPermission(session.id, true).catch(() => undefined);
+    }
     setSession({
       ...session,
-      compassPermissionGranted: false,
+      compassPermissionGranted: result.compassGranted,
       geoPermissionGranted: result.geoGranted,
       lastKnownLatitude: result.initialPosition?.latitude ?? session.lastKnownLatitude,
       lastKnownLongitude: result.initialPosition?.longitude ?? session.lastKnownLongitude,

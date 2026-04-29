@@ -53,9 +53,12 @@ export function evaluateTransit(params: {
     params.targetPlace
   );
 
+  const accuracyMargin = Math.min(Math.max(params.currentSample.accuracy ?? 0, 0), 30);
+  const effectiveArrivalRadius = params.targetPlace.gpsRadius + accuracyMargin;
+
   let trigger: string | undefined;
 
-  if (distanceToTarget <= params.targetPlace.gpsRadius) {
+  if (distanceToTarget <= effectiveArrivalRadius) {
     trigger = 'arrival';
   } else if (detectDeviation([...path, params.currentSample], params.targetPlace, 3)) {
     trigger = 'deviation';
@@ -73,7 +76,16 @@ export function evaluateTransit(params: {
   const scriptedLine = trigger && shouldTriggerAmbient && params.transit ? pickAmbientLine(params.transit.ambientLines, trigger, lastAmbientSecondsAgo) : null;
 
   return {
-    newGeoState: trigger === 'deviation' ? 'deviating' : trigger === 'idle' ? 'idle' : state === 'arrived' ? 'at_place' : state,
+    newGeoState:
+      trigger === 'arrival'
+        ? 'at_place'
+        : trigger === 'deviation'
+        ? 'deviating'
+        : trigger === 'idle'
+        ? 'idle'
+        : state === 'arrived'
+        ? 'at_place'
+        : state,
     shouldTriggerAmbient,
     ambientTrigger: shouldTriggerAmbient ? trigger : undefined,
     useScriptedLine: Boolean(scriptedLine),
@@ -85,7 +97,7 @@ export function evaluateTransit(params: {
     },
     distanceToTarget,
     humanDistance: humanizeDistance(distanceToTarget),
-    uncertainZone: distanceToTarget > params.targetPlace.gpsRadius && distanceToTarget <= params.targetPlace.gpsUncertaintyRadius
+    uncertainZone: distanceToTarget > effectiveArrivalRadius && distanceToTarget <= params.targetPlace.gpsUncertaintyRadius
   };
 }
 
